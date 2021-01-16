@@ -110,6 +110,7 @@ declare global {
     getInboxCollection: () => ConversationModelCollectionType;
     getIncomingCallNotification: () => Promise<boolean>;
     getInteractionMode: () => 'mouse' | 'keyboard';
+    getWindowIsFocused: () => Promise<boolean>;
     getMediaCameraPermissions: () => Promise<boolean>;
     getMediaPermissions: () => Promise<boolean>;
     getServerPublicParams: () => string;

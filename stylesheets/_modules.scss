@@ -4554,10 +4554,24 @@ button.module-image__border-overlay:focus {
   }
 }
 
+.module-image__canvas {
+  position: absolute;
+  cursor: pointer;
+  opacity: 0.0;
+}
+
+.module-image__canvas--visible {
+  opacity: 1.0;
+}
+
 .module-image__image {
   object-fit: cover;
   // redundant with attachment-container, but we get cursor flashing on move otherwise
   cursor: pointer;
+}
+
+.module-image__image--hidden {
+  opacity: 0.0;
 }
 
 .module-image__bottom-overlay {

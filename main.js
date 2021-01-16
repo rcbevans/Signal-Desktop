@@ -137,6 +137,10 @@ function showWindow() {
   dockIcon.show();
 }
 
+function getWindowFocused() {
+  return mainWindow && mainWindow.isFocused();
+}
+
 if (!process.mas) {
   console.log('making app single instance');
   const gotLock = app.requestSingleInstanceLock();
@@ -372,6 +376,8 @@ async function createWindow() {
   const debouncedCaptureStats = _.debounce(captureAndSaveWindowStats, 500);
   mainWindow.on('resize', debouncedCaptureStats);
   mainWindow.on('move', debouncedCaptureStats);
+  mainWindow.on('focus', () => mainWindow.webContents.send('main-window-focus'));
+  mainWindow.on('blur', () => mainWindow.webContents.send('main-window-blur'));
 
   if (config.environment === 'test') {
     mainWindow.loadURL(prepareURL([__dirname, 'test', 'index.html']));
@@ -465,6 +471,14 @@ async function createWindow() {
 
 ipc.on('show-window', () => {
   showWindow();
+});
+
+ipc.on('get-window-focused', event => {
+  event.sender.send(
+    'get-success-window-focused',
+    null,
+    getWindowFocused() || false
+  );
 });
 
 let isReadyForUpdates = false;

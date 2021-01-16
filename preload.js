@@ -258,6 +258,18 @@ try {
       ipc.send('get-always-relay-calls');
     });
 
+  window.getWindowIsFocused = () =>
+    new Promise((resolve, reject) => {
+      ipc.once('get-success-window-focused', (_event, error, value) => {
+        if (error) {
+          return reject(new Error(error));
+        }
+
+        return resolve(value);
+      });
+      ipc.send('get-window-focused');
+    });
+
   window.getMediaPermissions = () =>
     new Promise((resolve, reject) => {
       ipc.once('get-success-media-permissions', (_event, error, value) => {

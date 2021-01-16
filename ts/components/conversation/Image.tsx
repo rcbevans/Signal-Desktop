@@ -8,6 +8,7 @@ import { Blurhash } from 'react-blurhash';
 import { Spinner } from '../Spinner';
 import { LocalizerType } from '../../types/Util';
 import { AttachmentType } from '../../types/Attachment';
+import { ipcRenderer } from 'electron';
 
 export interface Props {
   alt: string;
@@ -42,12 +43,64 @@ export interface Props {
   onError?: () => void;
 }
 
-export class Image extends React.Component<Props> {
+interface State {
+  animate: boolean
+}
+
+export class Image extends React.Component<Props, State> {
+  private canvasRef = React.createRef<HTMLCanvasElement>();
+  private imageRef = React.createRef<HTMLImageElement>();
+
+  public constructor(props: Props)
+  {
+    super(props);
+    this.state = { animate: true }
+  }
+
   private canClick() {
     const { onClick, attachment, url } = this.props;
     const { pending } = attachment || { pending: true };
 
     return Boolean(onClick && !pending && url);
+  }
+
+  private renderImageToCanvas = () => {
+    const canvasElement = this.canvasRef.current;
+    const imageElement = this.imageRef.current;
+    const canvasContext = canvasElement?.getContext("2d"); 
+
+    if (canvasElement && imageElement && canvasContext)
+    {
+      window.log.info("renderImageToCanvas");
+      canvasContext.drawImage(imageElement, 0, 0, imageElement.width, imageElement.height);
+      this.forceUpdate();
+    }
+  }
+
+  private onMainWindowFocus = () =>
+  {
+    window.log.info("onMainWindowFocus");
+    this.setState({animate: true});
+  }
+
+  private onMainWindowBlur = () =>
+  {
+    window.log.info("onMainWindowBlur");
+    this.renderImageToCanvas();
+    this.setState({animate: false});
+  }
+
+  public componentDidMount = () =>
+  {
+    ipcRenderer.on('main-window-focus', this.onMainWindowFocus);
+    ipcRenderer.on('main-window-blur', this.onMainWindowBlur);
+    window.getWindowIsFocused().then((isFocused: boolean) => this.setState({ animate: isFocused }));
+  }
+
+  public componentWillUnmount = () =>
+  {
+    ipcRenderer.removeListener('main-window-focus', this.onMainWindowFocus);
+    ipcRenderer.removeListener('main-window-blur', this.onMainWindowBlur);
   }
 
   public handleClick = (event: React.MouseEvent): void => {
@@ -114,6 +167,8 @@ export class Image extends React.Component<Props> {
       width = 0,
     } = this.props;
 
+    const { animate } = this.state;
+
     const { caption, pending } = attachment || { caption: null, pending: true };
     const canClick = this.canClick();
 
@@ -170,14 +225,24 @@ export class Image extends React.Component<Props> {
             <Spinner svgSize="normal" />
           </div>
         ) : url ? (
-          <img
-            onError={onError}
-            className="module-image__image"
-            alt={alt}
-            height={height}
-            width={width}
-            src={url}
-          />
+          <>
+            <canvas
+              ref={this.canvasRef}
+              className={classNames("module-image__canvas", animate ? null : "module-image__canvas--visible")}
+              height={height}
+              width={width}
+            />
+            <img
+              ref={this.imageRef}
+              onError={onError}
+              className={classNames("module-image__image", animate ? null : "module-image__image--hidden")}
+              alt={alt}
+              height={height}
+              width={width}
+              src={url}
+              onLoad={this.renderImageToCanvas}
+            />
+          </>
         ) : blurHash ? (
           <Blurhash
             hash={blurHash}
